@@ -1,0 +1,76 @@
+name: SleepLens CI/CD
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  code-quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          
+      - name: Install Linting Tools
+        run: pip install flake8 sqlfluff
+        
+      - name: Lint Python (Flake8)
+        run: |
+          # stop the build if there are Python syntax errors or undefined names
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          # exit-zero treats all errors as warnings.
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+      - name: Lint SQL (SQLFluff)
+        run: |
+          # Lint dbt models
+          sqlfluff lint transformations/dbt/models --dialect snowflake
+
+  dbt-validation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          
+      - name: Install dbt
+        run: pip install dbt-snowflake
+        
+      - name: dbt Compile
+        run: |
+          cd transformations/dbt
+          # Using a mock profile for CI compile check to avoid needing real credentials
+          # We just want to check model syntax and graph validity
+          mkdir -p ~/.dbt
+          echo "sleeplens:
+            target: dev
+            outputs:
+              dev:
+                type: snowflake
+                account: dummy
+                user: dummy
+                password: dummy
+                role: dummy
+                warehouse: dummy
+                database: dummy
+                schema: dummy
+                threads: 1" > ~/.dbt/profiles.yml
+          dbt deps
+          dbt compile
+
+  build-docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Build Docker Image
+        run: docker build -f docker/Dockerfile -t sleeplens:latest .
