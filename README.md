@@ -6,7 +6,7 @@
 ![Build](https://github.com/yourusername/sleeplens/actions/workflows/ci_cd.yml/badge.svg)
 ![Tech Stack](https://img.shields.io/badge/Stack-Spark%20|%20Snowflake%20|%20dbt%20|%20Kestra%20|%20Streamlit-blue)
 
-![Dashboard Preview](assets/dashboard_preview.png)
+![Dashboard Preview](assets/dashboard_preview_v2.png)
 
 ## 🏗️ Architecture
 
