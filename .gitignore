@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# dbt
+transformations/dbt/target/
+transformations/dbt/dbt_packages/
+transformations/dbt/logs/
+transformations/dbt/profiles.yml
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+
+# Kestra & Docker
+docker/.env
+postgres_data/
+docker/kestra_config.yml
+
+# IDE
+.vscode/
+.idea/
+.DS_Store
+
+# Data
+data/raw/
+data/silver/
+data/gold/

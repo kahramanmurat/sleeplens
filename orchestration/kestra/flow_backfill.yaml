@@ -1,0 +1,44 @@
+id: sleeplens_backfill
+namespace: com.sleeplens
+inputs:
+  - id: start_date
+    type: STRING
+    defaults: "2026-01-01"
+  - id: end_date
+    type: STRING
+    defaults: "2026-01-07"
+
+tasks:
+  - id: date_range
+    type: io.kestra.plugin.scripts.python.Script
+    taskRunner:
+      type: io.kestra.plugin.scripts.runner.docker.Docker
+      image: python:3.11-slim
+    script: |
+      from datetime import datetime, timedelta
+      import json
+      
+      start = datetime.strptime("{{ inputs.start_date }}", "%Y-%m-%d")
+      end = datetime.strptime("{{ inputs.end_date }}", "%Y-%m-%d")
+      
+      dates = []
+      curr = start
+      while curr <= end:
+          dates.append(curr.strftime("%Y-%m-%d"))
+          curr += timedelta(days=1)
+      
+      print(json.dumps(dates))
+
+  - id: run_daily_pipeline
+    type: io.kestra.core.tasks.flows.ForEach
+    values: "{{ outputs.date_range.vars.stdOut | fromJson }}" 
+    concurrencyLimit: 2
+    tasks:
+      - id: trigger_pipeline
+        type: io.kestra.core.tasks.flows.Subflow
+        flowId: sleeplens_pipeline
+        namespace: com.sleeplens
+        inputs:
+          date: "{{ taskrun.value }}"
+        wait: true
+        transmitFailed: true

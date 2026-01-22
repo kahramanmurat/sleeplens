@@ -1,0 +1,58 @@
+{
+    "sleep_summary": {
+        "type": "object",
+        "properties": {
+            "study_id": {
+                "type": "string"
+            },
+            "study_date": {
+                "type": "string",
+                "format": "date"
+            },
+            "total_sleep_time_min": {
+                "type": "number"
+            },
+            "rem_min": {
+                "type": "number"
+            },
+            "deep_min": {
+                "type": "number"
+            },
+            "light_min": {
+                "type": "number"
+            },
+            "age_group": {
+                "type": "string"
+            },
+            "sex": {
+                "type": "string"
+            }
+        },
+        "required": [
+            "study_id",
+            "study_date"
+        ]
+    },
+    "events": {
+        "type": "object",
+        "properties": {
+            "study_id": {
+                "type": "string"
+            },
+            "event_type": {
+                "type": "string"
+            },
+            "duration_sec": {
+                "type": "number"
+            },
+            "study_datetime": {
+                "type": "string",
+                "format": "date-time"
+            }
+        },
+        "required": [
+            "study_id",
+            "event_type"
+        ]
+    }
+}

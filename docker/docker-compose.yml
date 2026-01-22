@@ -1,0 +1,52 @@
+services:
+  spark:
+    build:
+      context: .. # Assuming docker-compose is run from sleeplens/docker or root
+      dockerfile: docker/Dockerfile
+    volumes:
+      - ..:/app
+    environment:
+      - SPARK_LOCAL_IP=127.0.0.1
+    command: tail -f /dev/null # Keep alive
+
+  dbt:
+    image: ghcr.io/dbt-labs/dbt-snowflake:1.7.0
+    volumes:
+      - ..:/app
+      - ../transformations/dbt/profiles.yml:/root/.dbt/profiles.yml # Use local project profile
+    working_dir: /app/transformations/dbt
+    command: tail -f /dev/null
+
+  kestra:
+    image: kestra/kestra:v0.19.1
+    container_name: kestra
+    user: root # Needed for docker socket access
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ..:/project
+    environment:
+      KESTRA_CONFIGURATION: |
+        kestra:
+          server:
+            basic-auth:
+              type: basic
+              username: admin
+              password: admin
+
+    ports:
+      - "8081:8080"
+    depends_on:
+      - postgres
+    command: server local
+
+  postgres:
+    image: postgres:14
+    environment:
+      POSTGRES_USER: kestra
+      POSTGRES_PASSWORD: kestra_password
+      POSTGRES_DB: kestra
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

@@ -1,0 +1,7 @@
+pandas
+numpy
+pyspark
+boto3
+streamlit
+dbt-snowflake
+snowflake-connector-python

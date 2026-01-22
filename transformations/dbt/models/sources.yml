@@ -1,0 +1,11 @@
+version: 2
+
+sources:
+  - name: raw
+    database: SLEEPLENS
+    schema: RAW
+    tables:
+      - name: raw_sleep_studies
+        identifier: SLEEP_STUDIES
+      - name: raw_events
+        identifier: EVENTS

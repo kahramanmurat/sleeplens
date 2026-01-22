@@ -1,0 +1,45 @@
+version: 2
+
+sources:
+  - name: raw
+    database: SLEEPLENS  # Replace with actual database name
+    schema: RAW
+    tables:
+      - name: raw_sleep_studies
+      - name: raw_events_silver
+
+models:
+  - name: stg_sleep_study
+    description: "Staging model for sleep studies"
+    columns:
+      - name: study_id
+        tests:
+          - unique
+          - not_null
+
+  - name: stg_events
+    description: "Staging model for sleep events"
+    columns:
+      - name: study_id
+        tests:
+          - not_null
+      - name: event_type
+        tests:
+          - accepted_values:
+              values: ['apnea', 'hypopnea', 'arousal', 'other']
+
+  - name: fct_sleep_summary
+    description: "Fact table for sleep summaries"
+    columns:
+      - name: study_id
+        tests:
+          - unique
+          - not_null
+
+  - name: fct_event_rates
+    description: "Fact table for event rates per study"
+    columns:
+      - name: study_id
+        tests:
+          - unique
+          - not_null
