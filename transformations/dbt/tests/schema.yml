@@ -18,6 +18,7 @@ models:
       - name: event_type
         tests:
           - accepted_values:
+              name: accepted_values_event_type
               values: ['apnea', 'hypopnea', 'arousal', 'other']
 
   - name: fct_sleep_summary
