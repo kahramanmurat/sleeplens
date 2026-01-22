@@ -96,7 +96,7 @@ graph TD
 
 1.  **Clone the repository**:
     ```bash
-    git clone https://github.com/yourusername/sleeplens.git
+    git clone https://github.com/kahramanmurat/sleeplens.git
     cd sleeplens
     ```
 

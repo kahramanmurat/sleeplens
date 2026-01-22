@@ -106,7 +106,7 @@ if df is not None:
     global_end_date = df['STUDY_DATE'].max()
     global_patients = df['STUDY_ID'].nunique()
     
-    st.sidebar.markdown(f"**Total Patients:** {global_patients}")
+    st.sidebar.markdown(f"**Unique Patients:** {global_patients}")
     st.sidebar.markdown(f"**Data Range:**")
     st.sidebar.caption(f"{global_start_date} to {global_end_date}")
     st.sidebar.markdown("---")
@@ -148,12 +148,12 @@ if df is not None:
     with tab1:
         col1, col2, col3, col4 = st.columns(4)
         
-        total_patients = len(df_filtered)
+        total_studies = len(df_filtered)
         avg_ahi = df_filtered['AHI'].mean()
-        severe_percent = (len(df_filtered[df_filtered['AHI_Severity'] == 'Severe']) / total_patients) * 100 if total_patients > 0 else 0
+        severe_percent = (len(df_filtered[df_filtered['AHI_Severity'] == 'Severe']) / total_studies) * 100 if total_studies > 0 else 0
         avg_sleep = df_filtered['TOTAL_SLEEP_TIME_MIN'].mean() / 60
         
-        col1.metric("Total Patients", total_patients)
+        col1.metric("Total Sleep Studies", total_studies)
         col2.metric("Avg AHI", f"{avg_ahi:.1f}")
         col3.metric("Severe Apnea %", f"{severe_percent:.1f}%")
         col4.metric("Avg Sleep Time (hrs)", f"{avg_sleep:.1f}")
