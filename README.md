@@ -4,7 +4,7 @@
 
 ![Status](https://img.shields.io/badge/Status-Complete-green)
 ![Build](https://github.com/yourusername/sleeplens/actions/workflows/ci_cd.yml/badge.svg)
-![Tech Stack](https://img.shields.io/badge/Stack-Snowflake%20|%20dbt%20|%20Kestra%20|%20Streamlit-blue)
+![Tech Stack](https://img.shields.io/badge/Stack-Spark%20|%20Snowflake%20|%20dbt%20|%20Kestra%20|%20Streamlit-blue)
 
 ![Dashboard Preview](assets/dashboard_preview.png)
 
@@ -19,7 +19,7 @@ graph TD
     end
 
     subgraph "Ingestion Layer"
-        Script[fetch_public_summary.py]
+        Script[PySpark Ingestion Job]
         RawData[(Local/S3 Raw CSVs)]
         Script -->|Generates| RawData
     end
@@ -79,6 +79,7 @@ graph TD
 ## 🛠️ Tech Stack
 
 *   **Orchestration**: Kestra (Dockerized)
+*   **Ingestion**: Apache Spark (PySpark)
 *   **Data Warehouse**: Snowflake
 *   **Transformation**: dbt Core
 *   **Language**: Python 3.12
