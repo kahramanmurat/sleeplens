@@ -14,6 +14,8 @@ tasks:
     taskRunner:
       type: io.kestra.plugin.scripts.runner.docker.Docker
       image: python:3.11-slim
+    outputFiles:
+      - dates.json
     script: |
       from datetime import datetime, timedelta
       import json
@@ -27,15 +29,16 @@ tasks:
           dates.append(curr.strftime("%Y-%m-%d"))
           curr += timedelta(days=1)
       
-      print(json.dumps(dates))
+      with open("dates.json", "w") as f:
+          json.dump(dates, f)
 
   - id: run_daily_pipeline
-    type: io.kestra.core.tasks.flows.ForEach
-    values: "{{ outputs.date_range.vars.stdOut | fromJson }}" 
+    type: io.kestra.plugin.core.flow.ForEach
+    values: "{{ read(outputs.date_range.outputFiles['dates.json']) }}" 
     concurrencyLimit: 2
     tasks:
       - id: trigger_pipeline
-        type: io.kestra.core.tasks.flows.Subflow
+        type: io.kestra.plugin.core.flow.Subflow
         flowId: sleeplens_pipeline
         namespace: com.sleeplens
         inputs:

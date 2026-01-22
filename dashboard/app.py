@@ -99,12 +99,47 @@ df = load_data_from_snowflake()
 
 if df is not None:
     # --- Sidebar Filters ---
+    st.sidebar.title("📊 Dataset Stats")
+    
+    # Global Metrics
+    global_start_date = df['STUDY_DATE'].min()
+    global_end_date = df['STUDY_DATE'].max()
+    global_patients = df['STUDY_ID'].nunique()
+    
+    st.sidebar.markdown(f"**Total Patients:** {global_patients}")
+    st.sidebar.markdown(f"**Data Range:**")
+    st.sidebar.caption(f"{global_start_date} to {global_end_date}")
+    st.sidebar.markdown("---")
+
     st.sidebar.header("Cohort Filter")
+    
+    # Date Range Filter
+    # Ensure STUDY_DATE is datetime for comparison
+    df['STUDY_DATE'] = pd.to_datetime(df['STUDY_DATE']).dt.date
+    
+    min_date = df['STUDY_DATE'].min()
+    max_date = df['STUDY_DATE'].max()
+    
+    date_range = st.sidebar.date_input(
+        "Select Date Range",
+        value=(min_date, max_date),
+        min_value=min_date,
+        max_value=max_date
+    )
+    
     selected_sex = st.sidebar.multiselect("Sex", df['SEX'].unique(), default=df['SEX'].unique())
     selected_age = st.sidebar.multiselect("Age Group", df['AGE_GROUP'].unique(), default=df['AGE_GROUP'].unique())
     
     # Filter Data
-    df_filtered = df[df['SEX'].isin(selected_sex) & df['AGE_GROUP'].isin(selected_age)]
+    if len(date_range) == 2:
+        start_date, end_date = date_range
+        mask = (df['STUDY_DATE'] >= start_date) & (df['STUDY_DATE'] <= end_date) & \
+               (df['SEX'].isin(selected_sex)) & \
+               (df['AGE_GROUP'].isin(selected_age))
+    else:
+        mask = (df['SEX'].isin(selected_sex)) & (df['AGE_GROUP'].isin(selected_age))
+
+    df_filtered = df[mask]
     
     # --- Tabs ---
     tab1, tab2, tab3 = st.tabs(["🏥 Overview", "📊 Population Health", "👤 Patient Details"])

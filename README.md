@@ -6,6 +6,8 @@
 ![Build](https://github.com/yourusername/sleeplens/actions/workflows/ci_cd.yml/badge.svg)
 ![Tech Stack](https://img.shields.io/badge/Stack-Snowflake%20|%20dbt%20|%20Kestra%20|%20Streamlit-blue)
 
+![Dashboard Preview](assets/dashboard_preview.png)
+
 ## 🏗️ Architecture
 
 The pipeline follows a modern ELT (Extract, Load, Transform) architecture orchestrated by **Kestra**.

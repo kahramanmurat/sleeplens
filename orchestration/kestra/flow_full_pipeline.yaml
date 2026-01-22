@@ -7,7 +7,7 @@ inputs:
 
 triggers:
   - id: daily_schedule
-    type: io.kestra.core.models.triggers.types.Schedule
+    type: io.kestra.plugin.core.trigger.Schedule
     cron: "0 9 * * *"
 
 
@@ -17,11 +17,16 @@ tasks:
     taskRunner:
       type: io.kestra.plugin.scripts.runner.docker.Docker
       image: docker
+      # Use explicit host path mount. We know this works via 'docker run'.
       volumes:
-        - /var/run/docker.sock:/var/run/docker.sock
-        - /Users/muratkahraman/Downloads/sleeplens/sleeplens:/project
+        - "/var/run/docker.sock:/var/run/docker.sock"
+        - "/Users/muratkahraman/Downloads/sleeplens/sleeplens:/project"
+    env:
+      PROJECT_DIR: /Users/muratkahraman/Downloads/sleeplens/sleeplens
     commands:
-      - docker compose -f /project/docker/docker-compose.yml run --rm spark python3 ingestion/extract/fetch_public_summary.py --date {{ inputs.date }}
+      # Crucial: Use 'cd /project' because the mount SHOULD exist.
+      # If it fails, Kestra is dropping the volume config.
+      - cd /project && docker compose -f docker/docker-compose.yml run --rm spark python3 ingestion/extract/fetch_public_summary.py --date {{ inputs.date }}
 
   - id: upload_to_snowflake
     type: io.kestra.plugin.scripts.shell.Commands
@@ -29,11 +34,12 @@ tasks:
       type: io.kestra.plugin.scripts.runner.docker.Docker
       image: docker
       volumes:
-        - /var/run/docker.sock:/var/run/docker.sock
-        - /Users/muratkahraman/Downloads/sleeplens/sleeplens:/project
+        - "/var/run/docker.sock:/var/run/docker.sock"
+        - "/Users/muratkahraman/Downloads/sleeplens/sleeplens:/project"
+    env:
+      PROJECT_DIR: /Users/muratkahraman/Downloads/sleeplens/sleeplens
     commands:
-      - docker compose -f /project/docker/docker-compose.yml run --rm --entrypoint python3 dbt /app/ingestion/load/upload_to_snowflake.py --date {{ inputs.date }}
-
+      - cd /project && docker compose -f docker/docker-compose.yml run --rm --entrypoint python3 dbt /app/ingestion/load/upload_to_snowflake.py --date {{ inputs.date }}
 
   - id: dbt_run
     type: io.kestra.plugin.scripts.shell.Commands
@@ -41,11 +47,12 @@ tasks:
       type: io.kestra.plugin.scripts.runner.docker.Docker
       image: docker
       volumes:
-        - /var/run/docker.sock:/var/run/docker.sock
-        - /Users/muratkahraman/Downloads/sleeplens/sleeplens:/project
+        - "/var/run/docker.sock:/var/run/docker.sock"
+        - "/Users/muratkahraman/Downloads/sleeplens/sleeplens:/project"
+    env:
+      PROJECT_DIR: /Users/muratkahraman/Downloads/sleeplens/sleeplens
     commands:
-      - docker compose -f /project/docker/docker-compose.yml run --rm dbt run
-
+      - cd /project && docker compose -f docker/docker-compose.yml run --rm dbt run
 
   - id: dbt_test
     type: io.kestra.plugin.scripts.shell.Commands
@@ -53,8 +60,10 @@ tasks:
       type: io.kestra.plugin.scripts.runner.docker.Docker
       image: docker
       volumes:
-        - /var/run/docker.sock:/var/run/docker.sock
-        - /Users/muratkahraman/Downloads/sleeplens/sleeplens:/project
+        - "/var/run/docker.sock:/var/run/docker.sock"
+        - "/Users/muratkahraman/Downloads/sleeplens/sleeplens:/project"
+    env:
+      PROJECT_DIR: /Users/muratkahraman/Downloads/sleeplens/sleeplens
     commands:
-      - docker compose -f /project/docker/docker-compose.yml run --rm dbt test
+      - cd /project && docker compose -f docker/docker-compose.yml run --rm dbt test
 
