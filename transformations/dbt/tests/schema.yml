@@ -1,12 +1,4 @@
-version: 2
 
-sources:
-  - name: raw
-    database: SLEEPLENS  # Replace with actual database name
-    schema: RAW
-    tables:
-      - name: raw_sleep_studies
-      - name: raw_events_silver
 
 models:
   - name: stg_sleep_study

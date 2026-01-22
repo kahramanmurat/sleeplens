@@ -8,12 +8,12 @@ renamed as (
 
     select
         study_id,
-        case 
+        duration_sec,
+        study_datetime,
+        case
             when event_type in ('apnea', 'hypopnea', 'arousal') then event_type
             else 'other'
         end as event_type,
-        duration_sec,
-        study_datetime,
         to_date(study_datetime) as event_date,
         current_timestamp() as ingestion_time
 
