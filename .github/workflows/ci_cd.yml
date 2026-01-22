@@ -46,23 +46,30 @@ jobs:
         run: pip install dbt-snowflake
         
       - name: dbt Compile
+        env:
+          SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+          SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+          SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
+          SNOWFLAKE_ROLE: ${{ secrets.SNOWFLAKE_ROLE }}
+          SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
+          SNOWFLAKE_DATABASE: ${{ secrets.SNOWFLAKE_DATABASE }}
+          SNOWFLAKE_SCHEMA: ${{ secrets.SNOWFLAKE_SCHEMA }}
         run: |
           cd transformations/dbt
-          # Using a mock profile for CI compile check to avoid needing real credentials
-          # We just want to check model syntax and graph validity
+          # Create profiles.yml using environment variables for security
           mkdir -p ~/.dbt
           echo "sleeplens:
             target: dev
             outputs:
               dev:
                 type: snowflake
-                account: dummy
-                user: dummy
-                password: dummy
-                role: dummy
-                warehouse: dummy
-                database: dummy
-                schema: dummy
+                account: \"{{ env_var('SNOWFLAKE_ACCOUNT') }}\"
+                user: \"{{ env_var('SNOWFLAKE_USER') }}\"
+                password: \"{{ env_var('SNOWFLAKE_PASSWORD') }}\"
+                role: \"{{ env_var('SNOWFLAKE_ROLE') }}\"
+                warehouse: \"{{ env_var('SNOWFLAKE_WAREHOUSE') }}\"
+                database: \"{{ env_var('SNOWFLAKE_DATABASE') }}\"
+                schema: \"{{ env_var('SNOWFLAKE_SCHEMA') }}\"
                 threads: 1" > ~/.dbt/profiles.yml
           dbt deps
           dbt compile
