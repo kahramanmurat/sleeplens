@@ -93,6 +93,14 @@ def upload_data(date, profiles_dir='~/.dbt', profile='sleeplens', target=None):
         )
         """)
         
+        # Create Named File Format (Robustness Fix)
+        cursor.execute("""
+        CREATE FILE FORMAT IF NOT EXISTS SLEEPLENS_CSV
+        TYPE = 'CSV'
+        FIELD_OPTIONALLY_ENCLOSED_BY = '"'
+        SKIP_HEADER = 1
+        """)
+
         # Define base path
         base_path = "/app/data/raw"
         
@@ -105,10 +113,14 @@ def upload_data(date, profiles_dir='~/.dbt', profile='sleeplens', target=None):
                 print(f"Uploading {file_path}...")
                 # PUT file to stage
                 cursor.execute(f"PUT file://{file_path} @%SLEEP_STUDIES AUTO_COMPRESS=TRUE OVERWRITE=TRUE")
-                # COPY INTO
+                # COPY INTO using Named Format
+                # Spark writes columns alphabetically by default, so we must map them explicitly
+                # CSV: age_group, deep_min, light_min, rem_min, sex, study_date, study_id, total_sleep_time_min
                 cursor.execute("""
                 COPY INTO SLEEP_STUDIES 
-                FILE_FORMAT = (TYPE = 'CSV' FIELD_OPTIONALLY_ENCLOSED_BY = '"' SKIP_HEADER = 1)
+                (age_group, deep_min, light_min, rem_min, sex, study_date, study_id, total_sleep_time_min)
+                FROM @%SLEEP_STUDIES
+                FILE_FORMAT = (FORMAT_NAME = 'SLEEPLENS_CSV')
                 PURGE = TRUE
                 """)
                 print("Loaded into SLEEP_STUDIES.")
@@ -123,9 +135,13 @@ def upload_data(date, profiles_dir='~/.dbt', profile='sleeplens', target=None):
             for file_path in files:
                 print(f"Uploading {file_path}...")
                 cursor.execute(f"PUT file://{file_path} @%EVENTS AUTO_COMPRESS=TRUE OVERWRITE=TRUE")
+                
+                # CSV: duration_sec, event_type, study_datetime, study_id
                 cursor.execute("""
                 COPY INTO EVENTS 
-                FILE_FORMAT = (TYPE = 'CSV' FIELD_OPTIONALLY_ENCLOSED_BY = '"' SKIP_HEADER = 1)
+                (duration_sec, event_type, study_datetime, study_id)
+                FROM @%EVENTS
+                FILE_FORMAT = (FORMAT_NAME = 'SLEEPLENS_CSV')
                 PURGE = TRUE
                 """)
                 print("Loaded into EVENTS.")
