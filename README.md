@@ -68,7 +68,7 @@ graph TD
 ```
 
 ### Data Flow
-1.  **Ingestion**: `fetch_public_summary.py` generates synthetic sleep study data (mimicking IoMT devices) and stores it as raw CSVs.
+1.  **Ingestion**: `fetch_public_summary.py` uses **PySpark** to generate synthetic sleep study data (mimicking IoMT devices) and stores it as raw CSVs.
 2.  **Loading**: `upload_to_snowflake.py` loads raw data into the **Snowflake** Data Cloud (`RAW` schema).
 3.  **Transformation**: **dbt** (Data Build Tool) transforms raw data into analytics-ready models:
     *   **Staging**: Cleans and normalizes raw tables.
