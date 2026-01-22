@@ -142,7 +142,7 @@ if df is not None:
     df_filtered = df[mask]
     
     # --- Tabs ---
-    tab1, tab2, tab3 = st.tabs(["🏥 Overview", "📊 Population Health", "👤 Patient Details"])
+    tab1, tab2, tab3, tab4 = st.tabs(["🏥 Overview", "📊 Population Health", "👤 Patient Details", "🧠 Spectral Analysis"])
     
     # --- Tab 1: Overview ---
     with tab1:
@@ -244,6 +244,130 @@ if df is not None:
                 "Cohort Avg": [avg_ahi, avg_rem, avg_deep_min]
             })
             st.dataframe(comparison_df.set_index("Metric"))
+
+    # --- Tab 4: Spectral Analysis (New) ---
+    with tab4:
+        st.subheader("🔬 EEG Spectral Analysis (PhysioNet Data)")
+        
+        # Fetch signal analytics
+        @st.cache_data
+        def load_signal_data():
+            creds = get_snowflake_creds()
+            if not creds: return None
+            
+            try:
+                conn = snowflake.connector.connect(
+                    user=creds['user'],
+                    password=creds['password'],
+                    account=creds['account'].split('#')[0].strip(), # Quick fix reuse logic
+                    host=creds.get('host'),
+                    warehouse=creds['warehouse'],
+                    database=creds['database'],
+                    role=creds.get('role')
+                )
+                query = f"""
+                    SELECT * FROM {creds['database']}.RAW_ANALYTICS.FCT_SIGNAL_ANALYTICS
+                """
+                df_sig = pd.read_sql(query, conn)
+                conn.close()
+                return df_sig
+            except:
+                return None
+
+        df_signal = load_signal_data()
+        
+        if df_signal is not None and not df_signal.empty:
+            # Filter by Subject
+            # For PhysioNet we might only have PHYS_000 for now
+            subjects = df_signal['SUBJECT_ID'].unique()
+            sel_subj = st.selectbox("Select Research Subject", subjects)
+            
+            subj_data = df_signal[df_signal['SUBJECT_ID'] == sel_subj]
+            
+            st.markdown("### 1. Global Spectral Power Distribution")
+            st.caption("Which brainwaves dominate each sleep stage?")
+            
+            # Prepare for bar chart: Stacked bands per stage
+            # Melt df
+            bands = ['AVG_DELTA_REL', 'AVG_THETA_REL', 'AVG_ALPHA_REL', 'AVG_BETA_REL', 'AVG_GAMMA_REL']
+            chart_data = subj_data.melt(id_vars=['SLEEP_STAGE'], value_vars=bands, var_name='Band', value_name='Relative Power')
+            
+            # Clean names
+            chart_data['Band'] = chart_data['Band'].str.replace('AVG_', '').str.replace('_REL', '')
+            
+            st.vega_lite_chart(chart_data, {
+                'mark': 'bar',
+                'encoding': {
+                    'x': {'field': 'SLEEP_STAGE', 'type': 'nominal', 'axis': {'labelAngle': 0}},
+                    'y': {'field': 'Relative Power', 'type': 'quantitative', 'stack': 'normalize'},
+                    'color': {'field': 'Band', 'type': 'nominal'},
+                    'tooltip': ['SLEEP_STAGE', 'Band', 'Relative Power']
+                }
+            }, use_container_width=True)
+            
+            st.divider()
+            
+            # --- Temporal Analysis (Drill Down) ---
+            st.markdown("### 2. Sleep Architecture (Hypnogram) & Trends")
+            
+            # Fetch raw epoch data for this subject from Staging (epoch-level)
+            @st.cache_data
+            def load_epoch_data(subject_id):
+                creds = get_snowflake_creds()
+                if not creds: return None
+                try:
+                    conn = snowflake.connector.connect(
+                        user=creds['user'],
+                        password=creds['password'],
+                        account=creds['account'].split('#')[0].strip(),
+                        host=creds.get('host'),
+                        warehouse=creds['warehouse'],
+                        database=creds['database'],
+                        role=creds.get('role')
+                    )
+                    # Query Staging for detailed time-series
+                    query = f"""
+                        SELECT EPOCH_ID, SLEEP_STAGE, DELTA_REL, TIMESTAMP
+                        FROM {creds['database']}.RAW_STAGING.STG_SIGNAL_FEATURES
+                        WHERE SUBJECT_ID = '{subject_id}'
+                        ORDER BY EPOCH_ID ASC
+                    """
+                    df_epoch = pd.read_sql(query, conn)
+                    conn.close()
+                    return df_epoch
+                except Exception as e:
+                    st.error(f"Error loading epoch data: {e}")
+                    return None
+
+            df_epochs = load_epoch_data(sel_subj)
+            
+            if df_epochs is not None and not df_epochs.empty:
+                # Ordering Sleep Stages for Y-Axis
+                stage_order = ["Sleep stage W", "Sleep stage R", "Sleep stage 1", "Sleep stage 2", "Sleep stage 3", "Sleep stage 4"]
+                
+                # Chart 1: Hypnogram
+                st.markdown("**Hypnogram**: Progression of sleep stages through the night.")
+                st.vega_lite_chart(df_epochs, {
+                    'mark': {'type': 'line', 'interpolate': 'step-after'},
+                    'encoding': {
+                        'x': {'field': 'EPOCH_ID', 'type': 'quantitative', 'title': 'Epoch (Time)'},
+                        'y': {'field': 'SLEEP_STAGE', 'type': 'ordinal', 'sort': stage_order, 'title': 'Stage'},
+                        'color': {'field': 'SLEEP_STAGE', 'type': 'nominal'},
+                        'tooltip': ['EPOCH_ID', 'SLEEP_STAGE', 'TIMESTAMP']
+                    },
+                    'height': 200
+                }, use_container_width=True)
+                
+                # Chart 2: Delta Power Trend
+                st.markdown("**Delta Power Trend**: Deep sleep intensity (0.5-4Hz).")
+                st.caption("Spikes in Delta power correspond to restorative deep sleep.")
+                st.line_chart(df_epochs.set_index('EPOCH_ID')['DELTA_REL'], color='#FF4B4B') # Red for power
+                
+            else:
+                st.info("Detailed temporal data not available for this subject.")
+
+        else:
+            st.warning("No spectral data found. Ensure 'fetch_physionet.py' pipeline has run.")
 
 else:
     st.warning("Could not load data from Snowflake. Check your credentials and ensure the pipeline has run.")

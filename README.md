@@ -18,10 +18,15 @@ graph TD
         DailyTrigger((Daily 09:00 UTC))
     end
 
-    subgraph "Ingestion Layer"
-        Script[PySpark Ingestion Job]
-        RawData[(Local/S3 Raw CSVs)]
-        Script -->|Generates| RawData
+    subgraph "Ingestion Layer (Hybrid)"
+        PathA[fetch_public_summary.py]
+        PathB[fetch_physionet.py]
+        
+        RawDataA[(Synthetic CSVs)]
+        RawDataB[(PhysioNet Features)]
+        
+        PathA -->|PySpark| RawDataA
+        PathB -->|MNE-Python| RawDataB
     end
 
     subgraph "Data Warehouse (Snowflake)"
@@ -30,11 +35,15 @@ graph TD
         subgraph "Raw Schema"
             RawSummary[SLEEP_STUDIES]
             RawEvents[EVENTS]
+            RawSignal[SIGNAL_FEATURES]
         end
         
-        RawData -->|COPY INTO| SnowPy
+        RawDataA -->|COPY INTO| SnowPy
+        RawDataB -->|COPY INTO| SnowPy
+        
         SnowPy --> RawSummary
         SnowPy --> RawEvents
+        SnowPy --> RawSignal
     end
 
     subgraph "Transformation Layer (dbt)"
@@ -43,15 +52,17 @@ graph TD
         
         RawSummary --> Staging
         RawEvents --> Staging
+        RawSignal --> Staging
+        
         Staging -->|Join & Clean| Marts
         
         subgraph "Clinical Metrics"
             AHI[Calculated AHI]
-            SleepArch[Sleep Architecture]
+            SignalStats[Delta/Hypnogram]
         end
         
         Marts --> AHI
-        Marts --> SleepArch
+        Marts --> SignalStats
     end
 
     subgraph "Presentation Layer"
@@ -62,24 +73,28 @@ graph TD
         Streamlit -->|Visual Insights| User
     end
 
-    DailyTrigger --> Script
-    Script --> SnowPy
+    DailyTrigger --> PathA
+    DailyTrigger --> PathB
+    PathA --> SnowPy
+    PathB --> SnowPy
     SnowPy --> Staging
 ```
 
 ### Data Flow
-1.  **Ingestion**: `fetch_public_summary.py` uses **PySpark** to generate synthetic sleep study data (mimicking IoMT devices) and stores it as raw CSVs.
-2.  **Loading**: `upload_to_snowflake.py` loads raw data into the **Snowflake** Data Cloud (`RAW` schema).
+1.  **Ingestion (Hybrid)**:
+    *   **Synthetic Path**: `fetch_public_summary.py` uses **PySpark** to generate massive-scale summary data (mimicking 12,000+ daily summaries).
+    *   **Scientific Path**: `fetch_physionet.py` uses **MNE-Python** to process real PSG signals (EDF files) and extract spectral features (Delta/Theta power).
+2.  **Loading**: `upload_to_snowflake.py` consolidates both data streams into the **Snowflake** Data Cloud (`RAW` schema).
 3.  **Transformation**: **dbt** (Data Build Tool) transforms raw data into analytics-ready models:
-    *   **Staging**: Cleans and normalizes raw tables.
-    *   **Marts**: Creates business logic tables like `fct_sleep_summary` and `fct_event_rates` with calculated metrics.
+    *   **Staging**: Cleans and normalizes raw tables (`stg_sleep_studies`, `stg_signal_features`).
+    *   **Marts**: Creates business logic tables like `fct_sleep_summary` and `fct_signal_analytics`.
 4.  **Orchestration**: **Kestra** schedules and manages the entire dependency graph, running daily.
-5.  **Visualization**: A **Streamlit** dashboard connects directly to Snowflake to present clinical insights (AHI, Sleep Stages).
+5.  **Visualization**: A **Streamlit** dashboard connects directly to Snowflake to present clinical insights (AHI, Hypnograms).
 
 ## 🛠️ Tech Stack
 
 *   **Orchestration**: Kestra (Dockerized)
-*   **Ingestion**: Apache Spark (PySpark)
+*   **Ingestion**: Apache Spark (PySpark) & MNE-Python
 *   **Data Warehouse**: Snowflake
 *   **Transformation**: dbt Core
 *   **Language**: Python 3.12
