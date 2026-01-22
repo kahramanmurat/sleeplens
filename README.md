@@ -74,14 +74,27 @@ Run the clinical dashboard to view the results:
 uv run streamlit run dashboard/app.py
 ```
 
-## � CI/CD Pipeline
+## 🔄 CI/CD Pipeline
 
 This project uses **GitHub Actions** for Continuous Integration:
 *   **Linting**: Enforces code quality with `flake8` (Python) and `sqlfluff` (SQL).
 *   **Validation**: Runs `dbt compile` to ensure model integrity.
 *   **Build**: Verifies Docker image compilation.
 
-## �📊 Dashboard Features
+### 🔐 Secrets Configuration
+To enable the CI pipeline to compile dbt models against your Snowflake account, add the following **Repository Secrets** within GitHub (Settings -> Secrets and variables -> Actions):
+
+| Secret Name | Description |
+|---|---|
+| `SNOWFLAKE_ACCOUNT` | Your Snowflake account identifier (e.g., `xy12345.us-east-1`) |
+| `SNOWFLAKE_USER` | Service account username |
+| `SNOWFLAKE_PASSWORD` | Service account password |
+| `SNOWFLAKE_ROLE` | Role for dbt operations (e.g., `ACCOUNTADMIN` or custom role) |
+| `SNOWFLAKE_WAREHOUSE` | Compute warehouse (e.g., `COMPUTE_WH`) |
+| `SNOWFLAKE_DATABASE` | Target database (e.g., `SLEEPLENS`) |
+| `SNOWFLAKE_SCHEMA` | Target schema (e.g., `RAW`) |
+
+## 📊 Dashboard Features
 
 The dashboard is designed for health professionals and includes:
 *   **Clinical Overview**: Real-time calculation of **Apnea-Hypopnea Index (AHI)**.
