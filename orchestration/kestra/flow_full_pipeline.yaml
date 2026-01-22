@@ -28,6 +28,19 @@ tasks:
       # If it fails, Kestra is dropping the volume config.
       - cd /project && docker compose -f docker/docker-compose.yml run --rm spark python3 ingestion/extract/fetch_public_summary.py --date {{ inputs.date }}
 
+  - id: fetch_physionet_data
+    type: io.kestra.plugin.scripts.shell.Commands
+    taskRunner:
+      type: io.kestra.plugin.scripts.runner.docker.Docker
+      image: docker
+      volumes:
+        - "/var/run/docker.sock:/var/run/docker.sock"
+        - "/Users/muratkahraman/Downloads/sleeplens/sleeplens:/project"
+    env:
+      PROJECT_DIR: /Users/muratkahraman/Downloads/sleeplens/sleeplens
+    commands:
+      - cd /project && docker compose -f docker/docker-compose.yml run --rm spark python3 ingestion/extract/fetch_physionet.py --subjects 0  1
+
   - id: upload_to_snowflake
     type: io.kestra.plugin.scripts.shell.Commands
     taskRunner:
